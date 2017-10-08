@@ -1,4 +1,4 @@
-package default;
+package rollcall;
 use Dancer2 ':syntax';
 use Template;
 use DBI;
