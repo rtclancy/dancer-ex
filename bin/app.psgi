@@ -21,7 +21,7 @@ sub my_print
     
 
 #$app_root   = "..";
-$app_root   = "/opt/app-root/src/data";
+$app_root   = "/opt/app-root/src";
 $image_root   = "/opt/app-root/src/image_files";
 #if (!$debug)
 #{
