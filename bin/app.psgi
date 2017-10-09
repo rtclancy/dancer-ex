@@ -1,7 +1,8 @@
 #!/usr/bin/perl
 #!/usr/bin/env/perl
-use CGI;
+#use CGI;
 use Fcntl;
+use Plack::Request;
 
 #sub display_form {
 #    return "display_form: hello world";
@@ -29,7 +30,8 @@ else
     $app_root = "..";
 }
 
-our $query = new CGI;
+#our $query = new CGI;
+our $query;
 
 my $data_file1 = "$app_root/data/roll_call_in.csv";
 my $data_file2 = "$app_root/data/roll_call_out.csv";
@@ -141,7 +143,7 @@ sub copy_files
   {
     my $i;
     my ($linein);
-    sysopen (f_gd_out, $_[1], O_WRONLY|O_CREAT|O_TRUNC,0x666) or die "can't open $_[1]: $!";
+    sysopen (f_gd_out, $_[1], O_WRONLY|O_CREAT|O_TRUNC,0666) or die "can't open $_[1]: $!";
     #flock(f_gd_out);
     sysopen (f_gd, $_[0], O_RDONLY) or die "can't open $_[0]: $!";
     #while ($linein = <f_gd>) {}
@@ -209,7 +211,8 @@ sub illegal_delta
 	{
 	  if (($in_player_list_tmp[$player] ne '&nbsp') && ($out_player_list_tmp[$player] ne '&nbsp'))
 	    {
-	      print "<p>Day $day, Row $player, Can't be both in and out</p>";
+	      &my_print("<p>Day $day, Row $player, Can't be both in and out</p>");
+	      &my_print("<p>When changing status from in to out or vice versa, clear the old status, add the new status, and hit submit_roll</p>");
 	      $illegal_delta=1;
 	      close(f_in1);close(f_in2);close(f_in3);close(f_in4);
 	      return('null');
@@ -578,100 +581,134 @@ return @return_string;
 
 if (1) {
     my $app = sub {
+        my $env = shift;
+        @return_string=();
 
+        $query=Plack::Request->new($env);
 	unless ($action = $query->param('action')) {
 	    $action = 'none';
 	}
 	
-	$action='none';
-	$action='reset_roll';
-	$action='submit_roll';
+	#$action='none';
+	#$action='reset_roll';
+	#$action='submit_roll';
+#        my $query     = $req->parameters->{query};
+
+#        my @names=$query->param;
 	
 	
 	if ($action eq 'none' || 0) {
 	    &html_head;
 	    &display_form;
+            &my_print("<p> Action = $action </p><br>");
 	}
 
 	if ($action eq 'submit_roll' && 1) {
 	    &html_head;
-	    #open file for temporarily storing who is in
-	    sysopen (f_out, $data_file_out1, O_RDWR | O_CREAT | O_TRUNC,0x666) or die "can't open $data_file_out1: $!";
 
-	    for ($day=0;$day<3;$day++)
-	    {
-		for ($player=0;$player<20;$player++)
-		{
-		    $player_id=&subr_player_id($day,$player,0,0);
-		    print f_out "$player_id,";
-		}
-		print f_out "\n";
-	    }
-	    $timestamp=$query->param("in_ts");
-	    print f_out "$timestamp\n";
-	    $week_of=$query->param("week_of");
-	    print f_out $week_of;
-	    close(f_out);
-
-	    #open file for temporarily storing who is out
-	    sysopen (f_out, $data_file_out2, O_RDWR | O_CREAT | O_TRUNC,0x666) or die "can't open $data_file_out2: $!";
-	    
-	    for ($day=0;$day<3;$day++)
-	    {
-		for ($player=0;$player<20;$player++)
-		{
+            if (1) 
+            {
+                #open file for temporarily storing who is in
+                sysopen (f_out, $data_file_out1, O_RDWR | O_CREAT | O_TRUNC,0666) or die "can't open $data_file_out1: $!";
+                
+                for ($day=0;$day<3;$day++)
+                {
+                    for ($player=0;$player<20;$player++)
+                    {
+                        $player_id=&subr_player_id($day,$player,0,0);
+                        print f_out "$player_id,";
+                    }
+                    print f_out "\n";
+                }
+                $timestamp=$query->param("in_ts");
+                print f_out "$timestamp\n";
+                $week_of=$query->param("week_of");
+                print f_out $week_of;
+                close(f_out);
+                
+                #open file for temporarily storing who is out
+                sysopen (f_out, $data_file_out2, O_RDWR | O_CREAT | O_TRUNC,0666) or die "can't open $data_file_out2: $!";
+                
+                for ($day=0;$day<3;$day++)
+                {
+                    for ($player=0;$player<20;$player++)
+                    {
 		    $player_id=&subr_player_id($day,$player,1,0);
 		    print f_out "$player_id,";
-		}
-		print f_out "\n";
-	    }
-	    $timestamp=$query->param("out_ts");
-	    print f_out "$timestamp\n";
-	    $week_of=$query->param("week_of");
-	    print f_out $week_of;
-	    close(f_out);
-	    
-	    ## diff input and output files to find out who is being added
-	    &illegal_delta;
-	    
-	    $player_delta=&player_delta;
-	    
-	    #print $player_delta;
-	    
-	    &check_for_stale;
-	    
-	    if (!$stale && ($player_delta ne 'null') && !$illegal_delta)
-	    {
-		#copy temporary files back to database
-		#&update_ts;
-		&copy_files($data_file_out1,$data_file1,0);
-		&copy_files($data_file_out2,$data_file2,0);
-		
-		print "<p>Submission Complete $player_delta</p>\n";
-	    }
-	    elsif ($stale)
-	    {
-		print "<p>Stale Data! Please try again</p>\n";
-	    }
-	    elsif ($illegal_delta)
-	    {
-		print "<p>Illegal Change, Check for prior messages $player_delta</p>";
-	    }
-	    elsif ($player_delta = 'null')
-	    {
-		print "<p>No Change Has Been Detected, Please resubmit your change</p>";
-	    }
+                    }
+                    print f_out "\n";
+                }
+                $timestamp=$query->param("out_ts");
+                print f_out "$timestamp\n";
+                $week_of=$query->param("week_of");
+                print f_out $week_of;
+                close(f_out);
+                
+                ## diff input and output files to find out who is being added
+                &illegal_delta;
+                
+                $player_delta=&player_delta;
+                
+                #print $player_delta;
+                
+                &check_for_stale;
+                
+                if (!$stale && ($player_delta ne 'null') && !$illegal_delta)
+                {
+                    #copy temporary files back to database
+                    #&update_ts;
+                    &copy_files($data_file_out1,$data_file1,0);
+                    &copy_files($data_file_out2,$data_file2,0);
+                    
+                    &my_print( "<p>Submission Complete $player_delta</p>\n");
+                }
+                elsif ($stale)
+                {
+                    &my_print("<p>Stale Data! Please try again</p>\n");
+                }
+                elsif ($illegal_delta)
+                {
+                    &my_print("<p>Illegal Change, Check for prior messages $player_delta</p>");
+                }
+                elsif ($player_delta = 'null')
+                {
+                    &my_print("<p>No Change Has Been Detected, Please resubmit your change</p>");
+                }
+            }
 	    &display_form;
-	    
+            &my_print("<p> Action = $action </p><br>");	    
 	}
 
 	if ($action eq 'reset_roll') 
 	{
 	    &html_head;
+            $player_id=&subr_player_id(2,0,1,0);
+            $week_of=&subr_player_id(2,0,0,0);
+            if (0)
+            {
+                print $query->param("mon_player_list_in_0");
+                print $query->param("wed_player_list_in_0");
+                print $query->param("fri_player_list_in_0");
+                print $query->param("mon_player_list_out_0");
+                print $query->param("wed_player_list_out_0");
+                print $query->param("fri_player_list_out_0");
+            }
+            if ($player_id eq "shooterjoe" || 0)
+            {
+                &copy_files ($data_file_blank,$data_file1,1);
+                &copy_files ($data_file_blank,$data_file2,1);
+                &my_print("<p>Roll Call Has Been Reset</p>\n");
+            }
+            else
+            {
+                &my_print("<p>Incorrect Code For Reset</p>\n");
+            }
+            
 	    &display_form;
+            &my_print("<p> Action = $action </p><br>");	    
 	}
 	
-
+        
 	&html_tail;
 	#print $my_string;
 	#print "Hello";
