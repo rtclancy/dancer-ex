@@ -18,17 +18,21 @@ sub my_print
 }
     
 
-
-if (!$debug)
-{
-    $app_root   = "..";
-    $image_root = "http://rollcall-sunriseshooters.rhcloud.com";
-}
-else
-{
-    $image_root = "..";
-    $app_root = "..";
-}
+#$app_root   = "..";
+$app_root   = "/opt/app-root/src/data";
+$image_root   = "/opt/app-root/src/image_files";
+#if (!$debug)
+#{
+##    $app_root   = "..";
+#
+#    $image_root = "http://rollcall-sunriseshooters.rhcloud.com";
+#}
+#else
+#{
+#    $image_root = "..";
+##    $app_root = "..";
+#    $app_root = "..";
+#}
 
 #our $query = new CGI;
 our $query;
