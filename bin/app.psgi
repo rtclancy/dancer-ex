@@ -470,7 +470,7 @@ else
 
 
 
-if (!($mobile_device) && 1)
+if (!($mobile_device) && 0)
 {
 &my_print(  "<TR>\n");
 &my_print( "<TD><img width=150 height=150 src=$image_root/image_files/sun_icon.gif></TD>\n");
