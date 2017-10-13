@@ -499,9 +499,9 @@ else
 if (!($mobile_device) && 1)
 {
 &my_print(  "<TR>\n");
-&my_print( "<TD><img width=150 height=150 src=$image_root/image_files/sun_icon.gif></TD>\n");
-&my_print( "<TD><img width=150 height=150 src=$image_root/image_files/shooters.jpg></TD>\n");
-&my_print( "<TD><img width=150 height=150 src=$image_root/image_files/Basketball.JPG></TD>\n");
+&my_print( "<TD><img width=150 height=150 src=/image_files/sun_icon.gif></TD>\n");
+&my_print( "<TD><img width=150 height=150 src=/image_files/shooters.jpg></TD>\n");
+&my_print( "<TD><img width=150 height=150 src=/image_files/Basketball.JPG></TD>\n");
 &my_print(  "</TR>\n");
 }
 
