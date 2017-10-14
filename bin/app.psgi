@@ -5,6 +5,7 @@
 #use CGI;
 use Fcntl;
 use Plack::Request;
+#use Dancer;
 
 #sub display_form {
 #    return "display_form: hello world";
@@ -19,31 +20,24 @@ sub my_print
     return [push @return_string, $_[0]];
 }
     
-
-#$app_root   = "..";
-$app_root   = "/opt/app-root/src";
-$image_root   = "/opt/app-root/src/image_files";
-#if (!$debug)
-#{
-##    $app_root   = "..";
-#
-#    $image_root = "http://rollcall-sunriseshooters.rhcloud.com";
-#}
-#else
-#{
-#    $image_root = "..";
-##    $app_root = "..";
-#    $app_root = "..";
-#}
+if (0)
+{
+    $app_root   = "..";
+    $image_root   = "..";
+} else {
+    $app_root   = "/opt/app-root/src";
+    $image_root   = "/opt/app-root/src";
+}
 
 #our $query = new CGI;
 our $query;
 
-my $data_file1 = "$app_root/data/roll_call_in.csv";
-my $data_file2 = "$app_root/data/roll_call_out.csv";
+my $debug_log =  "$app_root/dynamic_data/debug_log.txt";
+my $data_file1 = "$app_root/dynamic_data/roll_call_in.csv";
+my $data_file2 = "$app_root/dynamic_data/roll_call_out.csv";
 my $data_file_blank = "$app_root/data/roll_call_blank.csv";
-my $data_file_out1 = "$app_root/data/tmp_roll_call_in.csv";
-my $data_file_out2 = "$app_root/data/tmp_roll_call_out.csv";
+my $data_file_out1 = "$app_root/dynamic_data/tmp_roll_call_in.csv";
+my $data_file_out2 = "$app_root/dynamic_data/tmp_roll_call_out.csv";
 my $player_id;
 my $day;
 my $player;
@@ -53,6 +47,19 @@ our $illegal_delta;
 our $timestamp;
 our $week_of;
 our $stale=0;
+
+sub debug_message
+{
+    sysopen (f_out, $debug_log, O_WRONLY | O_CREAT | O_APPEND,0666) or die "can't open $data_file_out1: $!";
+    print f_out "$_[0]\n";
+    close(f_out);
+}
+sub clear_debug
+{
+    sysopen (f_out, $debug_log, O_WRONLY | O_CREAT | O_TRUN,0666) or die "can't open $data_file_out1: $!";
+    close(f_out);
+}
+
 
 
 sub subr_player_id
@@ -140,6 +147,10 @@ sub subr_player_id
 	  print $query->param("fri_player_list_out_0");
       }
   }
+  if ($sub_player_id =~ m/rich/i) {
+      $sub_player_id="RichC aka The Weak Link";   
+  }
+
   return($sub_player_id);
 }
 
@@ -168,11 +179,13 @@ sub copy_files
       {
 	$linein=<f_gd>;
 	print f_gd_out "$week_of\n";
+        print f_gd_out "NA\n"; #last player to update
       }
     else
       {
 	$linein=<f_gd>;
 	print f_gd_out "$linein";
+        print f_gd_out "$player_delta\n";
       }
     
     #in count and out count
@@ -343,12 +356,16 @@ sub check_for_stale
 	{
 	  $timestamp[$ts] = <f_in4>;
 	}
-#      print "<p>$timestamp[$ts]</p>";
+      chomp($timestamp[$ts]);
     }
 
   if (($timestamp[0] != $timestamp[1]) || ($timestamp[2] != $timestamp[3]))
     {
       $stale=1;
+      for ($ts=0;$ts<4;$ts++)
+      {
+          &debug_message("ts$ts:/ $timestamp[$ts]");
+      }
     }
   
 close(f_in1);close(f_in2);close(f_in3);close(f_in4);
@@ -390,7 +407,7 @@ my @wed_player_list_out;
 my @fri_player_list_out;
 # display the form	
 &my_print( #endoftext
-"<FORM METHOD=\"POST\" ACTION=\"index.pl\"><TABLE width=40% border=\"1\"; style=\"font-size:14px;text-align:center;word-wrap;break-word;\">"
+"<FORM METHOD=\"POST\" ACTION=\"index.pl\"><TABLE width=60% border=\"1\"; style=\"font-size:14px;text-align:center;word-wrap;break-word;\">"
 );#EndofText
 ###################################################################
 #heading
@@ -430,6 +447,12 @@ my $out_timestamp = <f_in2>;
 chomp($out_timestamp);
 my $df_week_of = <f_in2>;
 chomp($df_week_of);
+my $tmp_player_delta = <f_in2>;
+chomp($tmp_player_delta);
+
+if ($player_delta eq 'null') { #then get player_delta from DB file
+    $player_delta=$tmp_player_delta;
+}
 
 close(f_in1);
 close(f_in2);
@@ -456,26 +479,29 @@ for ($day=0;$day<3;$day++)
 
 &my_print(  "</HR>\n");
 
-my $user_agent=$ENV{'HTTP_USER_AGENT'};
+my $user_agent=$query->headers->user_agent;#$ENV{'HTTP_USER_AGENT'};
 #print $user_agent;
 my $mobile_device;
-if (($user_agent =~ m/Mozilla/i) && (($user_agent =~ m/Firefox/i) || ($user_agent =~ m/windows/i) || ($user_agent =~ m/ipad/i)))
+if ((($user_agent =~ m/Mozilla/i) && (($user_agent =~ m/Firefox/i) || ($user_agent =~ m/windows/i) || ($user_agent =~ m/ipad/i))) && 1)
   {
     $mobile_device=0;
+    #&debug_message("Access is from a Non-Mobile Device");
   }
 else
   {
     $mobile_device=1;
+    #&debug_message("Access is from a Mobile Device");
   }
+#&debug_message($user_agent);
 
 
 
-if (!($mobile_device) && 0)
+if (!($mobile_device) && 1)
 {
 &my_print(  "<TR>\n");
-&my_print( "<TD><img width=150 height=150 src=$image_root/image_files/sun_icon.gif></TD>\n");
-&my_print( "<TD><img width=150 height=150 src=$image_root/image_files/shooters.jpg></TD>\n");
-&my_print( "<TD><img width=150 height=150 src=$image_root/image_files/Basketball.JPG></TD>\n");
+&my_print( "<TD><img width=150 height=150 src=/image_files/sun_icon.gif></TD>\n");
+&my_print( "<TD><img width=150 height=150 src=/image_files/shooters.jpg></TD>\n");
+&my_print( "<TD><img width=150 height=150 src=/image_files/Basketball.JPG></TD>\n");
 &my_print(  "</TR>\n");
 }
 
@@ -514,7 +540,7 @@ for ($day=0;$day<3;$day++)
     $in_count_per_day[$day]=$in_count;
     $out_count_per_day[$day]=$out_count;
     
-    &my_print( "<TD><TABLE width=80%><HR width=100%><TH width=50% align=CENTER>IN($in_count)</TH><TH width=50% align=CENTER>OUT($out_count)</TH></HR></TABLE></TD>\n");
+    &my_print( "<TD><TABLE width=100%><HR width=100%><TH width=50% align=CENTER>IN($in_count)</TH><TH width=50% align=CENTER>OUT($out_count)</TH></HR></TABLE></TD>\n");
   }
 &my_print( "</TR>\n");
 
@@ -530,10 +556,10 @@ $df_player_id = $player+1;
 	    &my_print( "<TD><TABLE><TR>\n");
 &my_print( # <<"EndofText";
 "<TD style=\"width:20px\" ALIGN=\"left\"> <p > $df_player_id:</p></TD>
-<TD ALIGN=\"left\" $optional_style> <p ><INPUT SIZE=10% border=none bg=none $optional_style NAME=\"mon_player_list_in_$player\" value=\"$mon_player_list[$player]\" /> </p> </TD>
+<TD ALIGN=\"left\" $optional_style> <p ><INPUT SIZE=20% border=none bg=none $optional_style NAME=\"mon_player_list_in_$player\" value=\"$mon_player_list[$player]\" /> </p> </TD>
 ");#EndofText
 &my_print( # <<"EndofText";
-"<TD ALIGN=\"left\" $optional_style> <p > <INPUT SIZE=10% border=none bg=none $optional_style NAME=\"mon_player_list_out_$player\" value=\"$mon_player_list_out[$player]\" /> </p> </TD>
+"<TD ALIGN=\"left\" $optional_style> <p > <INPUT SIZE=20% border=none bg=none $optional_style NAME=\"mon_player_list_out_$player\" value=\"$mon_player_list_out[$player]\" /> </p> </TD>
 "); #EndofText
 	    &my_print( "</TR></HR></TABLE></TD>");
       }
@@ -541,10 +567,10 @@ $df_player_id = $player+1;
 	  {
 	    &my_print( "<TD><TABLE><TR>\n");
 	    &my_print( # << "EndofText";
-"<TD ALIGN=\"left\" $optional_style> <p >  <INPUT SIZE=10% $optional_style NAME=\"wed_player_list_in_$player\" value=\"$wed_player_list[$player]\" /> </p> </TD>
+"<TD ALIGN=\"left\" $optional_style> <p >  <INPUT SIZE=20% $optional_style NAME=\"wed_player_list_in_$player\" value=\"$wed_player_list[$player]\" /> </p> </TD>
 ");#EndofText
 	    &my_print( # << "EndofText";
-"<TD ALIGN=\"left\" $optional_style> <p >  <INPUT SIZE=10% $optional_style NAME=\"wed_player_list_out_$player\" value=\"$wed_player_list_out[$player]\" /> </p> </TD>
+"<TD ALIGN=\"left\" $optional_style> <p >  <INPUT SIZE=20% $optional_style NAME=\"wed_player_list_out_$player\" value=\"$wed_player_list_out[$player]\" /> </p> </TD>
 ");#EndofText
 	    &my_print( "</TR></HR></TABLE></TD>");
       }
@@ -552,10 +578,10 @@ $df_player_id = $player+1;
 	  {
 	    &my_print( "<TD><TABLE><TR>\n");
 	&my_print( # << "EndofText";
-"<TD ALIGN=\"left\" $optional_style> <p >  <INPUT SIZE=10% $optional_style NAME=\"fri_player_list_in_$player\" value=\"$fri_player_list[$player]\" /> </p> </TD>
+"<TD ALIGN=\"left\" $optional_style> <p >  <INPUT SIZE=20% $optional_style NAME=\"fri_player_list_in_$player\" value=\"$fri_player_list[$player]\" /> </p> </TD>
 ");#EndofText
 	&my_print( # << "EndofText";
-"<TD ALIGN=\"left\" $optional_style> <p >  <INPUT SIZE=10% $optional_style NAME=\"fri_player_list_out_$player\" value=\"$fri_player_list_out[$player]\" /> </p> </TD>
+"<TD ALIGN=\"left\" $optional_style> <p >  <INPUT SIZE=20% $optional_style NAME=\"fri_player_list_out_$player\" value=\"$fri_player_list_out[$player]\" /> </p> </TD>
 ");EndofText
 	    &my_print( "</TR></HR></TABLE></TD>");
       }
@@ -563,7 +589,8 @@ $df_player_id = $player+1;
     &my_print( "</TR>\n");
   }
 &my_print("<TR>\n");
-&my_print("<TD>$in_timestamp,$out_timestamp</TD>");
+my $tmp_timestamp=localtime($in_timestamp);
+&my_print("<TD>Last Update::<br>$player_delta<br>$tmp_timestamp</TD>");
 &my_print("</TR>\n");
 
 &my_print(  "</TABLE>\n");
@@ -589,137 +616,158 @@ if (1) {
     my $app = sub {
         my $env = shift;
         @return_string=();
-
-        $query=Plack::Request->new($env);
-	unless ($action = $query->param('action')) {
-	    $action = 'none';
-	}
-	
-	#$action='none';
-	#$action='reset_roll';
-	#$action='submit_roll';
-#        my $query     = $req->parameters->{query};
-
-#        my @names=$query->param;
-	
-	
-	if ($action eq 'none' || 0) {
-	    &html_head;
-	    &display_form;
-            &my_print("<p> Action = $action </p><br>");
-	}
-
-	if ($action eq 'submit_roll' && 1) {
-	    &html_head;
-
-            if (1) 
-            {
-                #open file for temporarily storing who is in
-                sysopen (f_out, $data_file_out1, O_RDWR | O_CREAT | O_TRUNC,0666) or die "can't open $data_file_out1: $!";
-                
-                for ($day=0;$day<3;$day++)
-                {
-                    for ($player=0;$player<20;$player++)
-                    {
-                        $player_id=&subr_player_id($day,$player,0,0);
-                        print f_out "$player_id,";
-                    }
-                    print f_out "\n";
-                }
-                $timestamp=$query->param("in_ts");
-                print f_out "$timestamp\n";
-                $week_of=$query->param("week_of");
-                print f_out $week_of;
-                close(f_out);
-                
-                #open file for temporarily storing who is out
-                sysopen (f_out, $data_file_out2, O_RDWR | O_CREAT | O_TRUNC,0666) or die "can't open $data_file_out2: $!";
-                
-                for ($day=0;$day<3;$day++)
-                {
-                    for ($player=0;$player<20;$player++)
-                    {
-		    $player_id=&subr_player_id($day,$player,1,0);
-		    print f_out "$player_id,";
-                    }
-                    print f_out "\n";
-                }
-                $timestamp=$query->param("out_ts");
-                print f_out "$timestamp\n";
-                $week_of=$query->param("week_of");
-                print f_out $week_of;
-                close(f_out);
-                
-                ## diff input and output files to find out who is being added
-                &illegal_delta;
-                
-                $player_delta=&player_delta;
-                
-                #print $player_delta;
-                
-                &check_for_stale;
-                
-                if (!$stale && ($player_delta ne 'null') && !$illegal_delta)
-                {
-                    #copy temporary files back to database
-                    #&update_ts;
-                    &copy_files($data_file_out1,$data_file1,0);
-                    &copy_files($data_file_out2,$data_file2,0);
-                    
-                    &my_print( "<p>Submission Complete $player_delta</p>\n");
-                }
-                elsif ($stale)
-                {
-                    &my_print("<p>Stale Data! Please try again</p>\n");
-                }
-                elsif ($illegal_delta)
-                {
-                    &my_print("<p>Illegal Change, Check for prior messages $player_delta</p>");
-                }
-                elsif ($player_delta = 'null')
-                {
-                    &my_print("<p>No Change Has Been Detected, Please resubmit your change</p>");
-                }
-            }
-	    &display_form;
-            &my_print("<p> Action = $action </p><br>");	    
-	}
-
-	if ($action eq 'reset_roll') 
-	{
-	    &html_head;
-            $player_id=&subr_player_id(2,0,1,0);
-            $week_of=&subr_player_id(2,0,0,0);
-            if (0)
-            {
-                print $query->param("mon_player_list_in_0");
-                print $query->param("wed_player_list_in_0");
-                print $query->param("fri_player_list_in_0");
-                print $query->param("mon_player_list_out_0");
-                print $query->param("wed_player_list_out_0");
-                print $query->param("fri_player_list_out_0");
-            }
-            if ($player_id eq "shooterjoe" || 0)
-            {
+        
+        &debug_message($env->{PATH_INFO});
+        if ($env->{PATH_INFO} eq '/image_files/sun_icon.gif') {
+            open my $fh, "<:raw", "$image_root/image_files/sun_icon.gif" or die $!;
+            return [ 200, ['Content-Type' => 'image/x-icon'], $fh ];
+        } elsif ($env->{PATH_INFO} eq '/image_files/shooters.jpg') {
+            open my $fh, "<:raw", "$image_root/image_files/shooters.jpg" or die $!;
+            return [ 200, ['Content-Type' => 'image/x-icon'], $fh ];
+        } elsif ($env->{PATH_INFO} eq '/image_files/Basketball.JPG') {
+            open my $fh, "<:raw", "$image_root/image_files/Basketball.JPG" or die $!;
+            return [ 200, ['Content-Type' => 'image/x-icon'], $fh ];
+        } else {
+            &clear_debug;
+            #test to see if this is the first run of the application as in this case the data files won't exist
+            if ((-e $data_file1 && -e $data_file2)==0) {
                 &copy_files ($data_file_blank,$data_file1,1);
                 &copy_files ($data_file_blank,$data_file2,1);
-                &my_print("<p>Roll Call Has Been Reset</p>\n");
-            }
-            else
-            {
-                &my_print("<p>Incorrect Code For Reset</p>\n");
             }
             
-	    &display_form;
-            &my_print("<p> Action = $action </p><br>");	    
-	}
-	
-        
-	&html_tail;
-	#print $my_string;
-	#print "Hello";
-	return [200, ['Content-Type' => 'text/html'],  [@return_string]];
-    }
+            $query=Plack::Request->new($env);
+            unless ($action = $query->param('action')) {
+                $action = 'none';
+            }
+            
+            #$action='none';
+            #$action='reset_roll';
+            #$action='submit_roll';
+#        my $query     = $req->parameters->{query};
+            
+#        my @names=$query->param;
+            
+            
+            if ($action eq 'none' || 0) {
+                &html_head;
+                $player_delta='null';
+                &display_form;
+#            &my_print("<p> Action = $action </p><br>");
+            }
+            
+            if ($action eq 'submit_roll' && 1) {
+                &html_head;
+                
+                if (1) 
+                {
+                    #open file for temporarily storing who is in
+                    sysopen (f_out, $data_file_out1, O_RDWR | O_CREAT | O_TRUNC,0666) or die "can't open $data_file_out1: $!";
+                    
+                    for ($day=0;$day<3;$day++)
+                    {
+                        for ($player=0;$player<20;$player++)
+                        {
+                            $player_id=&subr_player_id($day,$player,0,0);
+                            print f_out "$player_id,";
+                        }
+                        print f_out "\n";
+                    }
+                    $timestamp=$query->param("in_ts");
+                    print f_out "$timestamp\n";
+                    $week_of=$query->param("week_of");
+                    print f_out "$week_of\n";
+                    close(f_out);
+                    
+                    #open file for temporarily storing who is out
+                    sysopen (f_out, $data_file_out2, O_RDWR | O_CREAT | O_TRUNC,0666) or die "can't open $data_file_out2: $!";
+                    
+                    for ($day=0;$day<3;$day++)
+                    {
+                        for ($player=0;$player<20;$player++)
+                        {
+                            $player_id=&subr_player_id($day,$player,1,0);
+                            print f_out "$player_id,";
+                        }
+                        print f_out "\n";
+                    }
+                    $timestamp=$query->param("out_ts");
+                    print f_out "$timestamp\n";
+                    $week_of=$query->param("week_of");
+                    print f_out "$week_of\n";
+                    close(f_out);
+                    
+                    ## diff input and output files to find out who is being added
+                    &illegal_delta;
+                    
+                    $player_delta=&player_delta;
+                    
+                    #print $player_delta;
+                    
+                    &check_for_stale;
+                    
+                    if (!$stale && ($player_delta ne 'null') && !$illegal_delta)
+                    {
+                        #copy temporary files back to database
+                        #&update_ts;
+                        &copy_files($data_file_out1,$data_file1,0);
+                        &copy_files($data_file_out2,$data_file2,0);
+                        
+                        &my_print( "<p>Submission Complete $player_delta</p>\n");
+                    }
+                    elsif ($stale)
+                    {
+                        &my_print("<p>Stale Data! Please try again</p>\n");
+                    }
+                    elsif ($illegal_delta)
+                    {
+                        &my_print("<p>Illegal Change, Check for prior messages $player_delta</p>");
+                    }
+                    elsif ($player_delta = 'null')
+                    {
+                        &my_print("<p>No Change Has Been Detected, Please resubmit your change</p>");
+                    }
+                }
+                &display_form;
+#            &my_print("<p> Action = $action </p><br>");	    
+            }
+            
+            if ($action eq 'reset_roll') 
+            {
+                &html_head;
+                $player_delta='null'; #forces webpage to use value from blank file
+                $player_id=&subr_player_id(2,0,1,0);
+                $week_of=&subr_player_id(2,0,0,0);
+                if (0)
+                {
+                    print $query->param("mon_player_list_in_0");
+                    print $query->param("wed_player_list_in_0");
+                    print $query->param("fri_player_list_in_0");
+                    print $query->param("mon_player_list_out_0");
+                    print $query->param("wed_player_list_out_0");
+                    print $query->param("fri_player_list_out_0");
+                }
+                if ($player_id eq "shooterjoe" || 0)
+                {
+                    &copy_files ($data_file_blank,$data_file1,1);
+                    &copy_files ($data_file_blank,$data_file2,1);
+                    &my_print("<p>Roll Call Has Been Reset</p>\n");
+                }
+                else
+                {
+                    &my_print("<p>Incorrect Code For Reset</p>\n");
+                }
+                
+                &display_form;
+#            &my_print("<p> Action = $action </p><br>");	    
+            }
+            
+            
+            &html_tail;
+            #print $my_string;
+            #print "Hello";
+            return [200, ['Content-Type' => 'text/html'],  [@return_string]];
+        }
+}
 }
 else
 {
