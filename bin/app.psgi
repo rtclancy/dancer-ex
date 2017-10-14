@@ -329,6 +329,7 @@ sub check_for_stale
   sysopen (f_in2, $data_file_out1, O_RDONLY) or die "can't open $data_file_out1: $!";
   sysopen (f_in3, $data_file2, O_RDONLY) or die "can't open $data_file2: $!";
   sysopen (f_in4, $data_file_out2, O_RDONLY) or die "can't open $data_file_out2: $!";
+  $stale=0;
 
 #read off first 3 lines of file in order to get to timestamp
   for ($day=0;$day<3;$day++)
