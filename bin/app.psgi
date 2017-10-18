@@ -1,4 +1,5 @@
 #!/usr/bin/env perl
+our $version="v1.0"
 
 #!/usr/bin/env/perl
 #!/usr/bin/perl
@@ -592,7 +593,7 @@ $df_player_id = $player+1;
   }
 &my_print("<TR>\n");
 my $tmp_timestamp=localtime($in_timestamp);
-&my_print("<TD>Last Update::<br>$player_delta<br>$tmp_timestamp</TD>");
+&my_print("<TD>Roll Call Version:$version<br>Last Update::<br>$player_delta<br>$tmp_timestamp</TD>");
 &my_print("</TR>\n");
 
 &my_print(  "</TABLE>\n");
