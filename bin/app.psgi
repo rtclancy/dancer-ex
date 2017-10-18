@@ -14,7 +14,7 @@ use Plack::Request;
 my $app_root   ;
 my $image_root ;
 our @return_string;
-our $version="v1.1"
+our $version="v1.1";
 
 sub my_print
 {
