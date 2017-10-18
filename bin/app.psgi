@@ -360,13 +360,14 @@ sub check_for_stale
       chomp($timestamp[$ts]);
     }
 
+  for ($ts=0;$ts<4;$ts++)
+  {
+      &debug_message("Stale = $stale");
+      &debug_message("ts$ts:/ $timestamp[$ts]");
+  }
   if (($timestamp[0] != $timestamp[1]) || ($timestamp[2] != $timestamp[3]))
     {
       $stale=1;
-      for ($ts=0;$ts<4;$ts++)
-      {
-          &debug_message("ts$ts:/ $timestamp[$ts]");
-      }
     }
   
 close(f_in1);close(f_in2);close(f_in3);close(f_in4);
