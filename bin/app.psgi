@@ -1,5 +1,4 @@
 #!/usr/bin/env perl
-our $version="v1.0"
 
 #!/usr/bin/env/perl
 #!/usr/bin/perl
@@ -15,6 +14,7 @@ use Plack::Request;
 my $app_root   ;
 my $image_root ;
 our @return_string;
+our $version="v1.0"
 
 sub my_print
 {
