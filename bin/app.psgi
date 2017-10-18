@@ -704,7 +704,7 @@ if (1) {
                     
                     #print $player_delta;
                     
-                    &check_for_stale;
+                    $stale=&check_for_stale;
                     
                     if (!$stale && ($player_delta ne 'null') && !$illegal_delta)
                     {
