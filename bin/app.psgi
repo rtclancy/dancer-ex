@@ -14,7 +14,7 @@ use Plack::Request;
 my $app_root   ;
 my $image_root ;
 our @return_string;
-our $version="v1.1";
+our $version="v1.2";
 
 sub my_print
 {
@@ -148,9 +148,9 @@ sub subr_player_id
 	  print $query->param("fri_player_list_out_0");
       }
   }
-  if ($sub_player_id =~ m/rich/i) {
-      $sub_player_id="RichC aka The Weak Link";   
-  }
+#  if ($sub_player_id =~ m/rich/i) {
+#      $sub_player_id="RichC aka The Weak Link";   
+#  }
 
   return($sub_player_id);
 }
